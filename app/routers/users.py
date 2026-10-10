@@ -52,6 +52,11 @@ def read_user_form(db: Session, form, target: User | None):
     if target and target.children and data["role"] != target.role:
         errors.append("Remove child accounts before changing the role of a manager.")
 
+    if data["role"] == "ca":
+        existing_ca = db.scalar(select(User).where(User.role == "ca", User.id != (target.id if target else 0)))
+        if existing_ca:
+            errors.append(f"Only one CA account is allowed. {existing_ca.email} is already the CA.")
+
     if data["role"] in ("admin", "ca"):
         data.update(is_manager=False, max_children=0, parent_id=None)
     if not data["is_manager"]:
@@ -77,7 +82,8 @@ def read_user_form(db: Session, form, target: User | None):
 
 def form_context(db: Session):
     managers = db.scalars(select(User).where(User.is_manager.is_(True)).order_by(User.role, User.name)).all()
-    return {"managers": managers, "roles": ROLES, "statuses": STATUSES}
+    ca_user = db.scalar(select(User).where(User.role == "ca"))
+    return {"managers": managers, "roles": ROLES, "statuses": STATUSES, "ca_user": ca_user}
 
 
 def approval_mail(background: BackgroundTasks, target: User):

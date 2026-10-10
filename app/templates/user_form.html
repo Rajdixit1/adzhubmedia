@@ -11,7 +11,14 @@
       <div class="field"><label>Phone</label><input name="phone" value="{{ form.phone or '' }}"></div>
       <div class="field">
         <label>Account type</label>
-        <select name="role">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if form.role == r }}>{{ 'CA (verifier)' if r == 'ca' else r | capitalize }}</option>{% endfor %}</select>
+        {% set ca_taken = ca_user and (not target or ca_user.id != target.id) %}
+        <select name="role">
+          {% for r in roles %}
+          <option value="{{ r }}" {{ 'selected' if form.role == r }} {{ 'disabled' if r == 'ca' and ca_taken }}>
+            {{ ('CA (verifier)' ~ (' — already assigned to ' ~ ca_user.email if ca_taken else '')) if r == 'ca' else r | capitalize }}
+          </option>
+          {% endfor %}
+        </select>
       </div>
       <div class="field">
         <label>Status</label>
