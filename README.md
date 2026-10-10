@@ -15,6 +15,16 @@ uvicorn app.main:app --reload
 Open http://127.0.0.1:8000. A default admin is created on first start from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 (default `admin@adzhubmedia.com` / `admin123`, change it).
 
+## Deploy on Render
+
+1. Render dashboard → **New → Blueprint** → select the `Rajdixit1/adzhubmedia` repo.
+2. Render reads `render.yaml` and creates the web service and a PostgreSQL database.
+3. Fill the prompted values: `ADMIN_PASSWORD` (required), SMTP settings (optional, can be added later).
+4. Click **Apply**. Every push to `main` redeploys automatically.
+
+Uploaded files are stored in the database, so they survive redeploys.
+Note: the free Render PostgreSQL expires after 30 days. Upgrade the database plan before using it for real data.
+
 ## Features
 
 | Area | What it does |
