@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.config import today as local_today
 from app.database import get_db
 from app.deps import member_user, scoped, team_ids
 from app.models import Client, Payment, User
@@ -16,7 +17,7 @@ PERIODS = {"today": "Today", "last_7": "Last 7 days", "this_month": "This month"
 
 
 def resolve_period(period: str, date_from: str = "", date_to: str = "") -> tuple[date | None, date | None]:
-    today = date.today()
+    today = local_today()
     if period == "custom":
         def parse(value):
             try:

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.config import today as local_today
 from app.database import get_db
 from app.deps import current_user, scoped, team_ids
 from app.models import Client, Payment, User
@@ -24,7 +25,7 @@ def base_query(db: Session, user: User):
 
 
 def filter_state(stmt, state: str):
-    today = date.today()
+    today = local_today()
     if state == "overdue":
         return stmt.where(Payment.verification_status == "pending", Payment.due_date < today)
     if state == "due_soon":

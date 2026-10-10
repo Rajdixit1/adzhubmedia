@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.config import now
 from app.database import Base
 
 
@@ -21,7 +22,7 @@ class User(Base):
     is_manager: Mapped[bool] = mapped_column(Boolean, default=False)
     max_children: Mapped[int] = mapped_column(Integer, default=0)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
     parent: Mapped["User | None"] = relationship(remote_side="User.id", back_populates="children")
     children: Mapped[list["User"]] = relationship(back_populates="parent")
@@ -52,8 +53,8 @@ class Client(Base):
     payment_terms: Mapped[str | None] = mapped_column(String(100))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
 
     owner: Mapped[User] = relationship(foreign_keys=[owner_id])
     creator: Mapped[User | None] = relationship(foreign_keys=[created_by])
@@ -76,8 +77,8 @@ class Payment(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
 
     # CA verification: None = not sent | pending | verified | not_received
     verification_status: Mapped[str | None] = mapped_column(String(20), index=True)
@@ -108,7 +109,7 @@ class PaymentFile(Base):
     size: Mapped[int] = mapped_column(Integer)
     content: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)  # stored in DB so it survives redeploys
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
     payment: Mapped[Payment] = relationship(back_populates="files")
     uploader: Mapped[User | None] = relationship()
@@ -126,4 +127,4 @@ class ActivityLog(Base):
     entity_id: Mapped[int | None] = mapped_column(Integer, index=True)
     details: Mapped[str | None] = mapped_column(Text)
     ip: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now, index=True)

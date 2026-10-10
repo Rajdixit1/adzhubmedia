@@ -1,11 +1,10 @@
 import json
-from datetime import date
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, today
 
 PAGE_SIZE = 25
 
@@ -29,7 +28,7 @@ def deadline_state(payment) -> tuple[str, str]:
         return "bad", "Not received"
     if not payment.due_date:
         return "info", "Pending"
-    days = (payment.due_date - date.today()).days
+    days = (payment.due_date - today()).days
     if days < 0:
         return "bad", f"Overdue by {-days} day{'s' if days != -1 else ''}"
     if days == 0:

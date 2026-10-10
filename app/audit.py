@@ -1,10 +1,11 @@
 import json
 import logging
+from datetime import datetime
 
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.config import TZ, settings
 from app.models import ActivityLog, User
 from app.web import client_ip
 
@@ -17,7 +18,9 @@ def file_logger(name: str, path) -> logging.Logger:
         logger.setLevel(logging.INFO)
         logger.propagate = False
         handler = logging.FileHandler(path, encoding="utf-8")
-        handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s"))
+        formatter = logging.Formatter("%(asctime)s | %(message)s")
+        formatter.converter = lambda secs: datetime.fromtimestamp(secs, TZ).timetuple()
+        handler.setFormatter(formatter)
         logger.addHandler(handler)
         _loggers[name] = logger
     return _loggers[name]

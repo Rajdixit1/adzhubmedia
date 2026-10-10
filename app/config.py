@@ -1,5 +1,7 @@
 import os
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 
@@ -19,6 +21,7 @@ class Settings:
     SMTP_TLS = os.getenv("SMTP_TLS", "true").lower() == "true"
     MAIL_FROM = os.getenv("MAIL_FROM", "no-reply@adzhubmedia.com")
     MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
+    TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
     LOG_DIR = BASE_DIR / "logs"
     UPLOAD_DIR = BASE_DIR / "uploads"
 
@@ -29,3 +32,14 @@ if settings.DATABASE_URL.startswith(("postgres://", "postgresql://")):
     settings.DATABASE_URL = "postgresql+psycopg://" + settings.DATABASE_URL.split("://", 1)[1]
 (settings.LOG_DIR / "users").mkdir(parents=True, exist_ok=True)
 settings.UPLOAD_DIR.mkdir(exist_ok=True)
+
+TZ = ZoneInfo(settings.TIMEZONE)
+
+
+def now() -> datetime:
+    """Current time in the app timezone (IST by default), independent of the server clock."""
+    return datetime.now(TZ).replace(tzinfo=None)
+
+
+def today() -> date:
+    return now().date()

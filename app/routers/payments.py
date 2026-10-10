@@ -1,5 +1,5 @@
 import mimetypes
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import quote
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
 from app.audit import apply_changes, record
-from app.config import settings
+from app.config import now, settings, today
 from app.database import get_db
 from app.deps import check_access, current_user, member_user, scoped, team_ids
 from app.mailer import ca_emails, send_email, stakeholders
@@ -111,8 +111,8 @@ def submit_for_verification(db: Session, request: Request, background: Backgroun
     previous = payment.verification_status
     payment.verification_status = "pending"
     payment.follow_up_days = days
-    payment.submitted_at = datetime.now()
-    payment.due_date = date.today() + timedelta(days=days)
+    payment.submitted_at = now()
+    payment.due_date = today() + timedelta(days=days)
     payment.submit_note = note
     payment.verified_amount = payment.verified_by = payment.verified_at = payment.verification_note = None
     payment.updated_by = user.id
@@ -295,7 +295,7 @@ async def verify_payment(pid: int, request: Request, background: BackgroundTasks
         return RedirectResponse(f"/payments/{pid}", 303)
 
     payment.verified_by = user.id
-    payment.verified_at = datetime.now()
+    payment.verified_at = now()
     db.commit()
     record(db, request, user, "verify", "payment", pid, payment.owner_id, {"changes": changes})
 
