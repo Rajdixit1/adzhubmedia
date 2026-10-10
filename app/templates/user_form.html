@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit account' if target else 'New account' }}{% endblock %}
+{% block content %}
+<form method="post">
+  <fieldset>
+    <legend>Account</legend>
+    <div class="grid">
+      <div class="field"><label>Name <span class="req">*</span></label><input name="name" value="{{ form.name or '' }}" required></div>
+      <div class="field"><label>Email <span class="req">*</span></label><input type="email" name="email" value="{{ form.email or '' }}" required></div>
+      <div class="field"><label>Company Name</label><input name="company_name" value="{{ form.company_name or '' }}"></div>
+      <div class="field"><label>Phone</label><input name="phone" value="{{ form.phone or '' }}"></div>
+      <div class="field">
+        <label>Account type</label>
+        <select name="role">{% for r in roles %}<option value="{{ r }}" {{ 'selected' if form.role == r }}>{{ 'CA (verifier)' if r == 'ca' else r | capitalize }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if form.status == s }}>{{ s | capitalize }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label>{{ 'New password (leave blank to keep)' if target else 'Password' }}{% if not target %} <span class="req">*</span>{% endif %}</label>
+        <input type="password" name="password" minlength="6" {{ '' if target else 'required' }}>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Parent / child access</legend>
+    <p class="muted">A manager can see and manage the clients, payments and logs of the accounts assigned to them. Parent and child must be the same type (advertiser or publisher).</p>
+    <div class="grid">
+      <div class="field">
+        <label class="check"><input type="checkbox" name="is_manager" {{ 'checked' if form.is_manager }}> This account is a manager (parent)</label>
+      </div>
+      <div class="field"><label>Max child accounts</label><input type="number" name="max_children" min="0" value="{{ form.max_children or 0 }}"></div>
+      <div class="field">
+        <label>Parent manager</label>
+        <select name="parent_id">
+          <option value="">— None —</option>
+          {% for m in managers if not target or m.id != target.id %}
+          <option value="{{ m.id }}" {{ 'selected' if form.parent_id == m.id }}>{{ m.name }} ({{ m.role }}, {{ m.children | length }}/{{ m.max_children }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button class="btn" type="submit">Save</button>
+    <a class="btn secondary" href="/users">Cancel</a>
+    {% if target %}<a class="btn secondary" href="/logs?entity=user&entity_id={{ target.id }}">View change log</a>{% endif %}
+  </div>
+</form>
+{% endblock %}

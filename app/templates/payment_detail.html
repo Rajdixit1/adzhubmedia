@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "_macros.html" import history_table, delete_button, deadline_badge %}
+{% block title %}Payment #{{ payment.id }}{% endblock %}
+{% block content %}
+{% set is_ca = user.role == 'ca' %}
+<div class="toolbar">
+  <div class="muted">Created {{ payment.created_at | dt }}{% if payment.creator %} by {{ payment.creator.email }}{% endif %} · Updated {{ payment.updated_at | dt }}</div>
+  {% if not is_ca %}
+  <div class="actions">
+    <a class="btn secondary" href="/payments/{{ payment.id }}/edit">Edit</a>
+    {{ delete_button('/payments/' ~ payment.id ~ '/delete', message='Delete this payment and all its files?') }}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <dl class="info">
+    <dt>Client</dt><dd>{% if is_ca %}{{ payment.client.company_name }}{% else %}<a href="/clients/{{ payment.client_id }}">{{ payment.client.company_name }}</a>{% endif %}</dd>
+    {% if is_ca %}<dt>Client tax ID</dt><dd>{{ payment.client.tax_id or '—' }}</dd>{% endif %}
+    <dt>Owner</dt><dd>{{ payment.owner.name }} <span class="badge {{ payment.owner.role }}">{{ payment.owner.role }}</span></dd>
+    <dt>Direction</dt><dd><span class="badge {{ payment.direction }}">{{ directions[payment.direction] }}</span></dd>
+    <dt>Amount</dt><dd>{{ payment.currency }} {{ payment.amount | money }}</dd>
+    <dt>Status</dt><dd><span class="badge {{ payment.status }}">{{ payment.status }}</span></dd>
+    <dt>Reference</dt><dd>{{ payment.reference or '—' }}</dd>
+    <dt>Payment date</dt><dd>{{ payment.payment_date or '—' }}</dd>
+    <dt>Notes</dt><dd style="white-space:pre-line">{{ payment.notes or '—' }}</dd>
+  </dl>
+</div>
+
+{% set state_cls, state_label = deadline_state(payment) %}
+<div class="card verify-card {{ state_cls }}">
+  <h2>CA verification</h2>
+  {% if payment.verification_status %}
+  <dl class="info">
+    <dt>Status</dt><dd>{{ deadline_badge(payment) }}</dd>
+    <dt>Sent for verification</dt><dd>{{ payment.submitted_at | dt }}</dd>
+    <dt>Follow-up deadline</dt><dd>{{ payment.due_date }} ({{ payment.follow_up_days }} days)</dd>
+    <dt>Note to CA</dt><dd>{{ payment.submit_note or '—' }}</dd>
+    {% if payment.verified_at %}
+    <dt>Updated by CA</dt><dd>{{ payment.verifier.name if payment.verifier else '—' }} on {{ payment.verified_at | dt }}</dd>
+    <dt>Received amount</dt><dd>{{ payment.currency ~ ' ' ~ (payment.verified_amount | money) if payment.verified_amount is not none else '—' }}</dd>
+    <dt>CA remarks</dt><dd style="white-space:pre-line">{{ payment.verification_note or '—' }}</dd>
+    {% endif %}
+  </dl>
+  {% else %}
+  <p class="muted">Not sent for verification yet.</p>
+  {% endif %}
+
+  {% if user.role in ('ca', 'admin') and payment.verification_status %}
+  <form method="post" action="/payments/{{ payment.id }}/verify" class="verify-form">
+    <h2>Update verification</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Result <span class="req">*</span></label>
+        <select name="decision" required>
+          <option value="">— Select —</option>
+          {% for key, label in decisions.items() %}<option value="{{ key }}" {{ 'selected' if payment.verification_status == key }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field"><label>Received amount ({{ payment.currency }})</label><input type="number" step="0.01" name="verified_amount" value="{{ payment.verified_amount or payment.amount }}"></div>
+      <div class="field"><label>Remarks</label><input name="verification_note" value="{{ payment.verification_note or '' }}"></div>
+    </div>
+    <p><button class="btn" type="submit">Save verification</button></p>
+  </form>
+  {% endif %}
+
+  {% if not is_ca and payment.verification_status != 'verified' %}
+  <form method="post" action="/payments/{{ payment.id }}/submit" class="verify-form">
+    <h2>{{ 'Resend to CA' if payment.verification_status else 'Send to CA for verification' }}</h2>
+    {% if not payment.files %}<p class="muted">Upload the receipt below first.</p>{% endif %}
+    <div class="grid">
+      <div class="field"><label>Follow up after (days)</label><input type="number" name="follow_up_days" min="1" max="365" value="{{ payment.follow_up_days or default_follow_up }}"></div>
+      <div class="field"><label>Note for CA</label><input name="submit_note" value="{{ payment.submit_note or '' }}"></div>
+    </div>
+    <p><button class="btn" type="submit" {{ 'disabled' if not payment.files }}>{{ 'Resend' if payment.verification_status else 'Send for verification' }}</button></p>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Files</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Type</th><th>Size</th><th>Uploaded</th>{% if not is_ca %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for f in payment.files | sort(attribute='id', reverse=true) %}
+        <tr>
+          <td><a href="/payments/files/{{ f.id }}">{{ f.original_name }}</a></td>
+          <td><span class="badge {{ 'outgoing' if f.kind == 'sent' else 'incoming' }}">{{ file_kinds[f.kind] }}</span></td>
+          <td>{{ (f.size / 1024) | round(1) }} KB</td>
+          <td class="nowrap">{{ f.uploaded_at | dt }}{% if f.uploader %}<br><span class="muted">{{ f.uploader.email }}</span>{% endif %}</td>
+          {% if not is_ca %}<td>{{ delete_button('/payments/files/' ~ f.id ~ '/delete', 'Remove', 'Remove this file?') }}</td>{% endif %}
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">No files uploaded.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not is_ca %}
+  <form method="post" action="/payments/{{ payment.id }}/files" enctype="multipart/form-data" style="margin-top:16px">
+    <div class="grid">
+      <div class="field">
+        <label>File type</label>
+        <select name="kind">{% for key, label in file_kinds.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div class="field"><label>Files</label><input type="file" name="files" multiple required></div>
+    </div>
+    <p><button class="btn" type="submit">Upload</button></p>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Change history</h2>
+  {{ history_table(history) }}
+</div>
+{% endblock %}

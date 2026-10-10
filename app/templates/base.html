@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · Adzhubmedia</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% if user %}
+{% set path = request.url.path %}
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">Adzhub<span>media</span></div>
+    <nav>
+      {% if user.role != 'ca' %}
+      <a href="/" class="{{ 'active' if path == '/' }}">Dashboard</a>
+      <a href="/clients" class="{{ 'active' if path.startswith('/clients') }}">Clients</a>
+      <a href="/payments" class="{{ 'active' if path.startswith('/payments') }}">Payments</a>
+      {% endif %}
+      <a href="/verifications" class="{{ 'active' if path.startswith('/verifications') }}">Verifications</a>
+      {% if user.role != 'ca' %}
+      <a href="/reports" class="{{ 'active' if path.startswith('/reports') }}">Revenue Report</a>
+      {% endif %}
+      {% if user.role == 'admin' or user.is_manager %}
+      <a href="/users" class="{{ 'active' if path.startswith('/users') }}">{{ 'Users' if user.role == 'admin' else 'My Team' }}</a>
+      {% endif %}
+      <a href="/logs" class="{{ 'active' if path.startswith('/logs') }}">Logs</a>
+      <a href="/profile" class="{{ 'active' if path.startswith('/profile') }}">Profile</a>
+      <a href="/logout">Logout</a>
+    </nav>
+  </aside>
+  <main>
+    <header class="topbar">
+      <h1>{{ self.title() }}</h1>
+      <div class="me">{{ user.name }} <span class="badge {{ user.role }}">{{ 'CA' if user.role == 'ca' else user.role }}{% if user.is_manager %} · manager{% endif %}</span></div>
+    </header>
+    {% include "_flash.html" %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% else %}
+<div class="auth">
+  <div class="brand">Adzhub<span>media</span></div>
+  {% include "_flash.html" %}
+  {% block auth %}{% endblock %}
+</div>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pagination, deadline_badge %}
+{% block title %}Verifications{% endblock %}
+{% block content %}
+<div class="stats">
+  <a class="stat {{ 'selected' if filters.state == 'pending' }}" href="/verifications?state=pending"><div class="label">Pending</div><div class="value">{{ summary.pending }}</div></a>
+  <a class="stat stat-bad {{ 'selected' if filters.state == 'overdue' }}" href="/verifications?state=overdue"><div class="label">Overdue</div><div class="value">{{ summary.overdue }}</div></a>
+  <a class="stat stat-warn {{ 'selected' if filters.state == 'due_soon' }}" href="/verifications?state=due_soon"><div class="label">{{ states.due_soon }}</div><div class="value">{{ summary.due_soon }}</div></a>
+  <a class="stat stat-ok {{ 'selected' if filters.state == 'verified' }}" href="/verifications?state=verified"><div class="label">Payment received</div><div class="value">{{ summary.verified }}</div></a>
+  <a class="stat stat-bad {{ 'selected' if filters.state == 'not_received' }}" href="/verifications?state=not_received"><div class="label">Not received</div><div class="value">{{ summary.not_received }}</div></a>
+</div>
+
+<div class="toolbar">
+  <form class="filters" method="get">
+    <input name="q" value="{{ filters.q }}" placeholder="Client name">
+    <select name="state">
+      <option value="">All</option>
+      {% for key, label in states.items() %}<option value="{{ key }}" {{ 'selected' if filters.state == key }}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="period" title="Sent for verification">
+      {% for key, label in periods.items() %}<option value="{{ key }}" {{ 'selected' if filters.period == key }}>{{ label }}</option>{% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ filters.date_from }}" title="From (custom range)">
+    <input type="date" name="date_to" value="{{ filters.date_to }}" title="To (custom range)">
+    <button class="btn secondary" type="submit">Filter</button>
+    <a href="/verifications">Reset</a>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Payment</th><th>Client</th><th>Account</th><th class="right">Amount</th><th>Sent</th><th>Follow-up</th><th>Deadline</th><th>Result</th><th></th></tr></thead>
+    <tbody>
+    {% for p in payments %}
+      {% set cls, label = deadline_state(p) %}
+      <tr class="row-{{ cls }}">
+        <td><a href="/payments/{{ p.id }}">#{{ p.id }}</a><br><span class="muted">{{ p.reference or '' }}</span></td>
+        <td>{{ p.client.company_name }}</td>
+        <td>{{ p.owner.name }} <span class="badge {{ p.owner.role }}">{{ p.owner.role }}</span></td>
+        <td class="right nowrap">{{ p.currency }} {{ p.amount | money }}</td>
+        <td class="nowrap">{{ p.submitted_at | dt }}</td>
+        <td class="nowrap">{{ p.follow_up_days }} days<br><span class="muted">due {{ p.due_date }}</span></td>
+        <td>{{ deadline_badge(p) }}</td>
+        <td>
+          {% if p.verified_at %}
+          {{ p.verifier.name if p.verifier else '' }}<br><span class="muted">{{ p.verified_at | dt }}</span>
+          {% if p.verified_amount is not none %}<br>{{ p.currency }} {{ p.verified_amount | money }}{% endif %}
+          {% else %}<span class="muted">Waiting for CA</span>{% endif %}
+        </td>
+        <td><a class="btn {{ 'secondary' if user.role != 'ca' }} sm" href="/payments/{{ p.id }}">{{ 'Verify' if user.role == 'ca' and p.verification_status == 'pending' else 'View' }}</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="empty">No receipts found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(request, pager) }}
+{% endblock %}

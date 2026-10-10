@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit client: ' ~ client.company_name if client else 'Onboard client' }}{% endblock %}
+{% block content %}
+<form method="post">
+  {% if owners | length > 1 %}
+  <fieldset>
+    <legend>Owner</legend>
+    <div class="grid">
+      <div class="field">
+        <label>Onboarded under</label>
+        <select name="owner_id">
+          {% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if owner_id == o.id }}>{{ o.name }} ({{ o.role }}) — {{ o.email }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+  </fieldset>
+  {% endif %}
+
+  {% for title, fields in groups %}
+  <fieldset>
+    <legend>{{ title }}</legend>
+    <div class="grid">
+      {% for name, label, required in fields %}
+      <div class="field">
+        <label>{{ label }}{% if required %} <span class="req">*</span>{% endif %}</label>
+        <input name="{{ name }}" value="{{ form[name] or '' }}" {{ 'required' if required }} {{ 'type=email' if name == 'email' }}>
+      </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endfor %}
+
+  <div class="actions">
+    <button class="btn" type="submit">{{ 'Save changes' if client else 'Create client' }}</button>
+    <a class="btn secondary" href="{{ '/clients/' ~ client.id if client else '/clients' }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

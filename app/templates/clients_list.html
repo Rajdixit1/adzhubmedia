@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <form class="filters" method="get">
+    <input name="q" value="{{ filters.q }}" placeholder="Search company, contact, email, tax id">
+    {% if owners | length > 1 %}
+    <select name="owner">
+      <option value="">All owners</option>
+      {% for o in owners %}<option value="{{ o.id }}" {{ 'selected' if filters.owner == o.id | string }}>{{ o.name }} ({{ o.role }})</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button class="btn secondary" type="submit">Filter</button>
+  </form>
+  <a class="btn" href="/clients/new">+ Onboard client</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>ID</th><th>Company</th><th>Contact</th><th>Tax ID</th><th>Country</th><th>Owner</th><th>Updated</th><th></th></tr></thead>
+    <tbody>
+    {% for c in clients %}
+      <tr>
+        <td>{{ c.id }}</td>
+        <td><a href="/clients/{{ c.id }}"><b>{{ c.company_name }}</b></a><br><span class="muted">{{ c.registration_no or '' }}</span></td>
+        <td>{{ c.contact_person }}<br><span class="muted">{{ c.email }}</span></td>
+        <td>{{ c.tax_id or '—' }}</td>
+        <td>{{ c.country or '—' }}</td>
+        <td>{{ c.owner.name }} <span class="badge {{ c.owner.role }}">{{ c.owner.role }}</span></td>
+        <td class="nowrap">{{ c.updated_at | dt }}</td>
+        <td><div class="actions"><a class="btn secondary sm" href="/clients/{{ c.id }}">View</a><a class="btn secondary sm" href="/clients/{{ c.id }}/edit">Edit</a></div></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">No clients yet. <a href="/clients/new">Onboard your first client</a>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(request, pager) }}
+{% endblock %}

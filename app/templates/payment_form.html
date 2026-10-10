@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit payment #' ~ payment.id if payment else 'New payment' }}{% endblock %}
+{% block content %}
+{% if not clients %}
+<div class="card center">
+  <p>You need a client before recording a payment.</p>
+  <a class="btn" href="/clients/new">Onboard client</a>
+</div>
+{% else %}
+<form method="post" enctype="multipart/form-data">
+  <fieldset>
+    <legend>Payment</legend>
+    <div class="grid">
+      <div class="field">
+        <label>Client <span class="req">*</span></label>
+        <select name="client_id" required>
+          <option value="">— Select —</option>
+          {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if form.client_id == c.id }}>{{ c.company_name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Direction</label>
+        <select name="direction">{% for key, label in directions.items() %}<option value="{{ key }}" {{ 'selected' if form.direction == key }}>{{ label }}</option>{% endfor %}</select>
+      </div>
+      <div class="field"><label>Amount <span class="req">*</span></label><input type="number" step="0.01" min="0.01" name="amount" value="{{ form.amount or '' }}" required></div>
+      <div class="field"><label>Currency</label><input name="currency" value="{{ form.currency or 'USD' }}" maxlength="10"></div>
+      <div class="field">
+        <label>Status</label>
+        <select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if form.status == s }}>{{ s | capitalize }}</option>{% endfor %}</select>
+      </div>
+      <div class="field"><label>Reference / Transaction ID</label><input name="reference" value="{{ form.reference or '' }}"></div>
+      <div class="field"><label>Payment date</label><input type="date" name="payment_date" value="{{ form.payment_date or '' }}"></div>
+    </div>
+    <div class="field" style="margin-top:14px"><label>Notes</label><textarea name="notes" rows="3">{{ form.notes or '' }}</textarea></div>
+    {% if not payment %}
+    <div class="field" style="margin-top:14px">
+      <label>Attachments (invoice, proof of payment)</label>
+      <input type="file" name="files" multiple>
+      <p class="muted">More files, including returned receipts, can be added from the payment page.</p>
+    </div>
+    {% endif %}
+  </fieldset>
+  {% if not payment %}
+  <fieldset>
+    <legend>CA verification</legend>
+    <div class="grid">
+      <div class="field"><label class="check"><input type="checkbox" name="send_for_verification"> Send the uploaded receipt to CA for verification</label></div>
+      <div class="field"><label>Follow up after (days)</label><input type="number" name="follow_up_days" min="1" max="365" value="{{ default_follow_up }}"></div>
+      <div class="field"><label>Note for CA</label><input name="submit_note" placeholder="e.g. Please confirm this was credited"></div>
+    </div>
+  </fieldset>
+  {% endif %}
+  <div class="actions">
+    <button class="btn" type="submit">{{ 'Save changes' if payment else 'Create payment' }}</button>
+    <a class="btn secondary" href="{{ '/payments/' ~ payment.id if payment else '/payments' }}">Cancel</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

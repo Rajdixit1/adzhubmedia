@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Account</h2>
+  <dl class="info">
+    <dt>Email</dt><dd>{{ user.email }}</dd>
+    <dt>Account type</dt><dd><span class="badge {{ user.role }}">{{ user.role }}</span></dd>
+    {% if user.parent %}<dt>Managed by</dt><dd>{{ user.parent.name }} ({{ user.parent.email }})</dd>{% endif %}
+    {% if user.is_manager %}<dt>Team limit</dt><dd>{{ user.children | length }} / {{ user.max_children }}</dd>{% endif %}
+    <dt>Member since</dt><dd>{{ user.created_at | dt }}</dd>
+  </dl>
+</div>
+
+<form method="post" action="/profile">
+  <fieldset>
+    <legend>Profile details</legend>
+    <div class="grid">
+      <div class="field"><label>Name <span class="req">*</span></label><input name="name" value="{{ user.name }}" required></div>
+      <div class="field"><label>Company Name</label><input name="company_name" value="{{ user.company_name or '' }}"></div>
+      <div class="field"><label>Phone</label><input name="phone" value="{{ user.phone or '' }}"></div>
+    </div>
+    <p><button class="btn" type="submit">Save profile</button></p>
+  </fieldset>
+</form>
+
+<form method="post" action="/profile/password">
+  <fieldset>
+    <legend>Change password</legend>
+    <div class="grid">
+      <div class="field"><label>Current password</label><input type="password" name="current_password" required></div>
+      <div class="field"><label>New password</label><input type="password" name="new_password" minlength="6" required></div>
+    </div>
+    <p><button class="btn" type="submit">Change password</button></p>
+  </fieldset>
+</form>
+{% endblock %}

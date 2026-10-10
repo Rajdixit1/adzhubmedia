@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import log_details %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="stats">
+  <div class="stat"><div class="label">Clients</div><div class="value"><a href="/clients">{{ client_count }}</a></div></div>
+  <div class="stat"><div class="label">Payments</div><div class="value"><a href="/payments">{{ payment_count }}</a></div></div>
+  <div class="stat"><div class="label">Awaiting CA verification</div><div class="value"><a href="/verifications?state=pending">{{ awaiting }}</a></div></div>
+  <div class="stat {{ 'stat-bad' if overdue }}"><div class="label">Overdue follow-ups</div><div class="value"><a href="/verifications?state=overdue">{{ overdue }}</a></div></div>
+  {% if user.role == 'admin' %}
+  <div class="stat"><div class="label">Pending approvals</div><div class="value"><a href="/users?status=pending">{{ pending_users }}</a></div></div>
+  {% endif %}
+  {% if user.is_manager %}
+  <div class="stat"><div class="label">My team</div><div class="value"><a href="/users">{{ team }} / {{ user.max_children }}</a></div></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Payment totals</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Direction</th><th>Status</th><th>Currency</th><th class="right">Amount</th></tr></thead>
+      <tbody>
+      {% for direction, currency, status, total in totals %}
+        <tr>
+          <td><span class="badge {{ direction }}">{{ direction }}</span></td>
+          <td><span class="badge {{ status }}">{{ status }}</span></td>
+          <td>{{ currency }}</td>
+          <td class="right">{{ total | money }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">No payments yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar"><h2 style="margin:0">Recent activity</h2><a href="/logs">View all logs</a></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>By</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+      <tbody>
+      {% for log in recent %}
+        <tr>
+          <td class="nowrap">{{ log.created_at | dt }}</td>
+          <td>{{ log.user_email }}</td>
+          <td><span class="badge {{ log.action }}">{{ log.action }}</span></td>
+          <td>{{ log.entity }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+          <td>{{ log_details(log) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">No activity yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

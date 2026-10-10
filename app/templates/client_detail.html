@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import history_table, delete_button %}
+{% block title %}{{ client.company_name }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div class="muted">
+    Owner: <b>{{ client.owner.name }}</b> <span class="badge {{ client.owner.role }}">{{ client.owner.role }}</span>
+    · Created {{ client.created_at | dt }}{% if client.creator %} by {{ client.creator.email }}{% endif %}
+    · Updated {{ client.updated_at | dt }}{% if client.updater %} by {{ client.updater.email }}{% endif %}
+  </div>
+  <div class="actions">
+    <a class="btn" href="/payments/new?client={{ client.id }}">+ Payment</a>
+    <a class="btn secondary" href="/clients/{{ client.id }}/edit">Edit</a>
+    {{ delete_button('/clients/' ~ client.id ~ '/delete', message='Delete this client?') }}
+  </div>
+</div>
+
+<div class="grid">
+  {% for title, fields in groups %}
+  <div class="card">
+    <h2>{{ title }}</h2>
+    <dl class="info">
+      {% for name, label, _ in fields %}
+      <dt>{{ label }}</dt><dd>{{ client[name] or '—' }}</dd>
+      {% endfor %}
+    </dl>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Payments</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>Direction</th><th class="right">Amount</th><th>Status</th><th>Reference</th><th>Date</th><th>Files</th></tr></thead>
+      <tbody>
+      {% for p in client.payments | sort(attribute='id', reverse=true) %}
+        <tr>
+          <td><a href="/payments/{{ p.id }}">#{{ p.id }}</a></td>
+          <td><span class="badge {{ p.direction }}">{{ p.direction }}</span></td>
+          <td class="right">{{ p.currency }} {{ p.amount | money }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+          <td>{{ p.reference or '—' }}</td>
+          <td>{{ p.payment_date or '—' }}</td>
+          <td>{{ p.files | length }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="empty">No payments for this client.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Change history</h2>
+  {{ history_table(history) }}
+</div>
+{% endblock %}

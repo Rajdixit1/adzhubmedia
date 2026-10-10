@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import log_details, pagination %}
+{% block title %}Activity Logs{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <form class="filters" method="get">
+    <input name="q" value="{{ filters.q }}" placeholder="User email or text">
+    <select name="action">
+      <option value="">All actions</option>
+      {% for a in actions %}<option value="{{ a }}" {{ 'selected' if filters.action == a }}>{{ a }}</option>{% endfor %}
+    </select>
+    <select name="entity">
+      <option value="">All sections</option>
+      {% for e in entities %}<option value="{{ e }}" {{ 'selected' if filters.entity == e }}>{{ e }}</option>{% endfor %}
+    </select>
+    <input name="entity_id" value="{{ filters.entity_id }}" placeholder="Record ID" style="width:100px">
+    <input type="date" name="date_from" value="{{ filters.date_from }}" title="From">
+    <input type="date" name="date_to" value="{{ filters.date_to }}" title="To">
+    <button class="btn secondary" type="submit">Filter</button>
+    <a href="/logs">Reset</a>
+  </form>
+  <a class="btn secondary" href="/logs/download">Download {{ 'app.log' if user.role == 'admin' else 'my log file' }}</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>When</th><th>User</th><th>Action</th><th>Section</th><th>Details</th><th>IP</th></tr></thead>
+    <tbody>
+    {% for log in logs %}
+      <tr>
+        <td class="nowrap">{{ log.created_at | dt }}</td>
+        <td>{{ log.user_email }}</td>
+        <td><span class="badge {{ log.action }}">{{ log.action }}</span></td>
+        <td class="nowrap">
+          {% if log.entity == 'client' and log.action != 'delete' %}<a href="/clients/{{ log.entity_id }}">client #{{ log.entity_id }}</a>
+          {% elif log.entity == 'payment' and log.action != 'delete' %}<a href="/payments/{{ log.entity_id }}">payment #{{ log.entity_id }}</a>
+          {% else %}{{ log.entity }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}{% endif %}
+        </td>
+        <td>{{ log_details(log) }}</td>
+        <td class="muted">{{ log.ip or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">No logs found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(request, pager) }}
+{% endblock %}

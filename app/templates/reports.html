@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Revenue Report{% endblock %}
+{% block content %}
+{% macro amounts(r) %}
+<td class="right">{{ r.count }}</td>
+<td class="right">{{ r.incoming | money }}</td>
+<td class="right">{{ r.outgoing | money }}</td>
+<td class="right">{{ r.requested | money }}</td>
+<td class="right txt-warn">{{ r.pending | money }}</td>
+<td class="right txt-ok">{{ r.verified | money }}</td>
+<td class="right txt-bad">{{ r.not_received | money }}</td>
+{% endmacro %}
+{% set head %}<th class="right">Payments</th><th class="right">Revenue (incoming)</th><th class="right">Outgoing</th><th class="right">Sent for validation</th><th class="right">Pending</th><th class="right">Verified</th><th class="right">Not received</th>{% endset %}
+<div class="toolbar">
+  <form class="filters" method="get">
+    <select name="period">
+      {% for key, label in periods.items() %}<option value="{{ key }}" {{ 'selected' if filters.period == key }}>{{ label }}</option>{% endfor %}
+    </select>
+    <input type="date" name="date_from" value="{{ filters.date_from }}" title="From (custom range)">
+    <input type="date" name="date_to" value="{{ filters.date_to }}" title="To (custom range)">
+    <button class="btn secondary" type="submit">Show</button>
+  </form>
+  <div class="muted">
+    {% if start or end %}{{ start or '…' }} to {{ end or '…' }}{% else %}All time{% endif %}
+    · by payment date
+  </div>
+</div>
+
+<div class="card">
+  <h2>Total</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Currency</th>{{ head }}</tr></thead>
+      <tbody>
+      {% for r in totals %}<tr><td><b>{{ r.currency }}</b></td>{{ amounts(r) }}</tr>
+      {% else %}<tr><td colspan="8" class="empty">No payments in this period.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>By account (who brought the revenue)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Account</th><th>Currency</th>{{ head }}</tr></thead>
+      <tbody>
+      {% for r in by_account %}
+        <tr>
+          <td>{{ r.name }} <span class="badge {{ r.role }}">{{ r.role }}</span><br><span class="muted">{{ r.email }}</span></td>
+          <td>{{ r.currency }}</td>{{ amounts(r) }}
+        </tr>
+      {% else %}<tr><td colspan="9" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>By client (how much each client sent for validation)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Client</th><th>Account</th><th>Currency</th>{{ head }}</tr></thead>
+      <tbody>
+      {% for r in by_client %}
+        <tr>
+          <td><a href="/clients/{{ r.id }}">{{ r.company_name }}</a></td>
+          <td>{{ r.owner }}</td>
+          <td>{{ r.currency }}</td>{{ amounts(r) }}
+        </tr>
+      {% else %}<tr><td colspan="10" class="empty">No data.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

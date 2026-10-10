@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pagination, delete_button %}
+{% block title %}{{ 'Users' if user.role == 'admin' else 'My Team' }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <form class="filters" method="get">
+    <input name="q" value="{{ filters.q }}" placeholder="Search name, email, company">
+    {% if user.role == 'admin' %}
+    <select name="role">
+      <option value="">All roles</option>
+      {% for r in roles %}<option value="{{ r }}" {{ 'selected' if filters.role == r }}>{{ r | capitalize }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s | capitalize }}</option>{% endfor %}
+    </select>
+    <button class="btn secondary" type="submit">Filter</button>
+  </form>
+  {% if user.role == 'admin' %}<a class="btn" href="/users/new">+ New account</a>{% endif %}
+</div>
+
+{% if user.role != 'admin' %}
+<p class="muted">You manage {{ user.children | length }} of {{ user.max_children }} allowed accounts. Their clients, payments and logs are visible to you.</p>
+{% endif %}
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name / Email</th><th>Type</th><th>Company</th><th>Status</th><th>Manager</th><th>Parent</th><th>Joined</th>{% if user.role == 'admin' %}<th></th>{% endif %}</tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.name }}<br><span class="muted">{{ u.email }}</span></td>
+        <td><span class="badge {{ u.role }}">{{ u.role }}</span></td>
+        <td>{{ u.company_name or '—' }}</td>
+        <td><span class="badge {{ u.status }}">{{ u.status }}</span></td>
+        <td>{% if u.is_manager %}{{ u.children | length }} / {{ u.max_children }}{% else %}—{% endif %}</td>
+        <td>{{ u.parent.name if u.parent else '—' }}</td>
+        <td class="nowrap">{{ u.created_at | dt }}</td>
+        {% if user.role == 'admin' %}
+        <td>
+          <div class="actions">
+            {% if u.status == 'pending' %}
+            <form method="post" action="/users/{{ u.id }}/approve"><button class="btn success sm">Approve</button></form>
+            {% endif %}
+            <a class="btn secondary sm" href="/users/{{ u.id }}/edit">Edit</a>
+            <a class="btn secondary sm" href="/logs?q={{ u.email }}">Logs</a>
+            {% if u.id != user.id %}{{ delete_button('/users/' ~ u.id ~ '/delete', message='Delete this account?') }}{% endif %}
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="empty">No accounts found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(request, pager) }}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pagination %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <form class="filters" method="get">
+    <input name="q" value="{{ filters.q }}" placeholder="Reference">
+    <select name="client">
+      <option value="">All clients</option>
+      {% for c in clients %}<option value="{{ c.id }}" {{ 'selected' if filters.client == c.id | string }}>{{ c.company_name }}</option>{% endfor %}
+    </select>
+    <select name="direction">
+      <option value="">All directions</option>
+      {% for key, label in directions.items() %}<option value="{{ key }}" {{ 'selected' if filters.direction == key }}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ s | capitalize }}</option>{% endfor %}
+    </select>
+    <button class="btn secondary" type="submit">Filter</button>
+  </form>
+  <a class="btn" href="/payments/new">+ New payment</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>ID</th><th>Client</th><th>Direction</th><th class="right">Amount</th><th>Status</th><th>Reference</th><th>Date</th><th>Files</th><th>Owner</th></tr></thead>
+    <tbody>
+    {% for p in payments %}
+      <tr>
+        <td><a href="/payments/{{ p.id }}">#{{ p.id }}</a></td>
+        <td><a href="/clients/{{ p.client_id }}">{{ p.client.company_name }}</a></td>
+        <td><span class="badge {{ p.direction }}">{{ p.direction }}</span></td>
+        <td class="right nowrap">{{ p.currency }} {{ p.amount | money }}</td>
+        <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
+        <td>{{ p.reference or '—' }}</td>
+        <td class="nowrap">{{ p.payment_date or '—' }}</td>
+        <td>{{ p.files | length }}</td>
+        <td>{{ p.owner.name }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9" class="empty">No payments found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{{ pagination(request, pager) }}
+{% endblock %}

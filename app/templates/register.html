@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block auth %}
+<div class="card">
+  <div class="tabs">
+    <a href="/register?role=publisher" class="{{ 'active' if role == 'publisher' }}">Publisher</a>
+    <a href="/register?role=advertiser" class="{{ 'active' if role == 'advertiser' }}">Advertiser</a>
+  </div>
+  <form method="post" action="/register" class="stack">
+    <input type="hidden" name="role" value="{{ role }}">
+    <div><label>Full Name <span class="req">*</span></label><input name="name" value="{{ form.name or '' }}" required></div>
+    <div><label>Email <span class="req">*</span></label><input type="email" name="email" value="{{ form.email or '' }}" required></div>
+    <div><label>Password <span class="req">*</span></label><input type="password" name="password" minlength="6" required></div>
+    <div><label>Company Name</label><input name="company_name" value="{{ form.company_name or '' }}"></div>
+    <div><label>Phone</label><input name="phone" value="{{ form.phone or '' }}"></div>
+    <button class="btn" type="submit" style="width:100%">Register as {{ role | capitalize }}</button>
+  </form>
+  <p class="center muted">Already registered? <a href="/login?role={{ role }}">Login</a></p>
+</div>
+{% endblock %}

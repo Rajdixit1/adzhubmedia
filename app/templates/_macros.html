@@ -1,0 +1,59 @@
+{% macro log_details(log) %}
+{% set d = log.details | fromjson %}
+{% if d.changes %}
+<ul class="details">
+  {% for field, pair in d.changes.items() %}
+  <li><b>{{ field }}</b>: <span class="old">{{ pair[0] if pair[0] not in (none, '') else '—' }}</span> → <span class="new">{{ pair[1] if pair[1] not in (none, '') else '—' }}</span></li>
+  {% endfor %}
+</ul>
+{% elif d %}
+<ul class="details">
+  {% for field, value in d.items() if value not in (none, '', []) %}
+  <li><b>{{ field }}</b>: {{ value | join(', ') if value is iterable and value is not string else value }}</li>
+  {% endfor %}
+</ul>
+{% else %}<span class="muted">—</span>{% endif %}
+{% endmacro %}
+
+{% macro history_table(history) %}
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>When</th><th>By</th><th>Action</th><th>Details</th></tr></thead>
+    <tbody>
+    {% for log in history %}
+      <tr>
+        <td class="nowrap">{{ log.created_at | dt }}</td>
+        <td>{{ log.user_email }}</td>
+        <td><span class="badge {{ log.action }}">{{ log.action }}</span></td>
+        <td>{{ log_details(log) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="empty">No history yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro pagination(request, p) %}
+{% if p.pages > 1 %}
+<div class="pager">
+  {% if p.page > 1 %}<a class="btn secondary sm" href="{{ page_url(request, p.page - 1) }}">‹ Prev</a>{% endif %}
+  <span>Page {{ p.page }} of {{ p.pages }} · {{ p.total }} records</span>
+  {% if p.page < p.pages %}<a class="btn secondary sm" href="{{ page_url(request, p.page + 1) }}">Next ›</a>{% endif %}
+</div>
+{% else %}
+<div class="pager">{{ p.total }} records</div>
+{% endif %}
+{% endmacro %}
+
+{% macro deadline_badge(payment) %}
+{% set cls, label = deadline_state(payment) %}
+{% if label %}<span class="state {{ cls }}">{{ label }}</span>{% else %}<span class="muted">—</span>{% endif %}
+{% endmacro %}
+
+{% macro delete_button(action, label='Delete', message='Are you sure?') %}
+<form method="post" action="{{ action }}" onsubmit="return confirm('{{ message }}')">
+  <button class="btn danger sm" type="submit">{{ label }}</button>
+</form>
+{% endmacro %}
