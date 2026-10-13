@@ -31,6 +31,20 @@ services:
         value: "true"
       - key: MAIL_FROM
         value: no-reply@adzhubmedia.com
+      - key: WHATSAPP_PROVIDER
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: META_WA_TOKEN
+        sync: false
+      - key: META_WA_PHONE_ID
+        sync: false
+      - key: DEFAULT_COUNTRY_CODE
+        value: "91"
       - key: MAX_UPLOAD_MB
         value: "10"
 

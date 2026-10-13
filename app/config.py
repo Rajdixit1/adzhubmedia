@@ -20,6 +20,14 @@ class Settings:
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
     SMTP_TLS = os.getenv("SMTP_TLS", "true").lower() == "true"
     MAIL_FROM = os.getenv("MAIL_FROM", "no-reply@adzhubmedia.com")
+    # WhatsApp: "twilio" or "meta" (WhatsApp Cloud API). Empty = write messages to logs/whatsapp.log.
+    WHATSAPP_PROVIDER = os.getenv("WHATSAPP_PROVIDER", "").lower()
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "")
+    META_WA_TOKEN = os.getenv("META_WA_TOKEN", "")
+    META_WA_PHONE_ID = os.getenv("META_WA_PHONE_ID", "")
+    DEFAULT_COUNTRY_CODE = os.getenv("DEFAULT_COUNTRY_CODE", "91")
     MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
     TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
     LOG_DIR = BASE_DIR / "logs"

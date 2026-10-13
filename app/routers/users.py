@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.audit import apply_changes, record
 from app.database import get_db
 from app.deps import admin_user, current_user
-from app.mailer import send_email
+from app.mailer import notify
 from app.models import Client, Payment, User
 from app.security import hash_password
 from app.web import PageError, flash, not_found, paginate, render
@@ -86,9 +86,23 @@ def form_context(db: Session):
     return {"managers": managers, "roles": ROLES, "statuses": STATUSES, "ca_user": ca_user}
 
 
-def approval_mail(background: BackgroundTasks, target: User):
-    background.add_task(send_email, [target.email], "Your account is approved - Adzhubmedia",
-                        f"Hi {target.name},\n\nYour {target.role} account is now active. You can log in.")
+def login_url(request: Request, target: User) -> str:
+    return f"{str(request.base_url).rstrip('/')}/login?role={target.role}"
+
+
+def approval_mail(request: Request, background: BackgroundTasks, target: User, admin: User):
+    notify(background, [target], "Your account is approved - Adzhubmedia",
+           f"Hi {target.name},\n\nYour {target.role} account has been approved by {admin.name} ({admin.email}) "
+           f"and is now active.\n\nLogin email: {target.email}\nLogin here: {login_url(request, target)}",
+           reply_to=admin.email)
+
+
+def welcome_mail(request: Request, background: BackgroundTasks, target: User, admin: User):
+    notify(background, [target], "Your account has been created - Adzhubmedia",
+           f"Hi {target.name},\n\n{admin.name} ({admin.email}) created a {target.role} account for you.\n\n"
+           f"Login email: {target.email}\nLogin here: {login_url(request, target)}\n\n"
+           f"Get the password from the admin, or use \"Forgot password?\" on the login page to set your own.",
+           reply_to=admin.email)
 
 
 @router.get("")
@@ -118,7 +132,8 @@ def new_user(request: Request, db: Session = Depends(get_db), user: User = Depen
 
 
 @router.post("/new")
-async def create_user(request: Request, db: Session = Depends(get_db), user: User = Depends(admin_user)):
+async def create_user(request: Request, background: BackgroundTasks,
+                      db: Session = Depends(get_db), user: User = Depends(admin_user)):
     data, password, errors = read_user_form(db, await request.form(), None)
     if errors:
         for e in errors:
@@ -129,6 +144,8 @@ async def create_user(request: Request, db: Session = Depends(get_db), user: Use
     db.add(target)
     db.commit()
     record(db, request, user, "create", "user", target.id, target.id, data)
+    if target.status == "active":
+        welcome_mail(request, background, target, user)
     flash(request, f"Account {target.email} created.")
     return RedirectResponse("/users", 303)
 
@@ -169,7 +186,7 @@ async def update_user(uid: int, request: Request, background: BackgroundTasks,
     db.commit()
     record(db, request, user, "update", "user", target.id, target.id, {"changes": changes})
     if was_pending and target.status == "active":
-        approval_mail(background, target)
+        approval_mail(request, background, target, user)
     flash(request, "Account updated.")
     return RedirectResponse("/users", 303)
 
@@ -185,7 +202,7 @@ def approve_user(uid: int, request: Request, background: BackgroundTasks,
         target.status = "active"
         db.commit()
         record(db, request, user, "approve", "user", target.id, target.id, {"changes": {"status": [old, "active"]}})
-        approval_mail(background, target)
+        approval_mail(request, background, target, user)
         flash(request, f"{target.email} approved.")
     return RedirectResponse("/users", 303)
 

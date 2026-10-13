@@ -15,7 +15,7 @@ from app.audit import apply_changes, record
 from app.config import now, settings, today
 from app.database import get_db
 from app.deps import check_access, current_user, member_user, scoped, team_ids
-from app.mailer import ca_emails, send_email, stakeholders
+from app.mailer import ca_users, notify, send_email, stakeholders
 from app.models import ActivityLog, Client, Payment, PaymentFile, User
 from app.web import PageError, flash, not_found, paginate, render
 
@@ -121,13 +121,15 @@ def submit_for_verification(db: Session, request: Request, background: Backgroun
            {"previous": previous, "amount": payment.amount, "currency": payment.currency,
             "follow_up_days": days, "due_date": payment.due_date, "note": note})
 
-    background.add_task(send_email, ca_emails(db),
-                        f"Receipt for verification: {payment.client.company_name} - "
-                        f"{payment.currency} {payment.amount:,.2f}",
-                        f"{user.name} ({user.email}) submitted a receipt for verification.\n\n"
-                        f"Client: {payment.client.company_name}\nAmount: {payment.currency} {payment.amount:,.2f}\n"
-                        f"Reference: {payment.reference or '-'}\nFollow-up deadline: {payment.due_date} ({days} days)\n"
-                        f"Note: {note or '-'}\n\nOpen the Verifications section to update it.")
+    details = (f"Payment #{payment.id}\nClient: {payment.client.company_name}\n"
+               f"Amount: {payment.currency} {payment.amount:,.2f}\nReference: {payment.reference or '-'}\n"
+               f"Follow-up deadline: {payment.due_date} ({days} days)\nNote: {note or '-'}")
+    notify(background, ca_users(db),
+           f"Receipt for verification: {payment.client.company_name} - {payment.currency} {payment.amount:,.2f}",
+           f"{user.name} ({user.email}) submitted a receipt for verification.\n\n{details}\n\n"
+           f"Open the Verifications section to update it.", reply_to=user.email)
+    notify(background, [user, payment.owner], f"Sent to CA for verification: {payment.client.company_name}",
+           f"Your receipt has been sent to the CA for verification.\n\n{details}")
 
 
 def form_page(request, db, user, payment, form):
@@ -299,13 +301,16 @@ async def verify_payment(pid: int, request: Request, background: BackgroundTasks
     db.commit()
     record(db, request, user, "verify", "payment", pid, payment.owner_id, {"changes": changes})
 
-    background.add_task(send_email, stakeholders(db, payment.owner),
-                        f"Verification update: {payment.client.company_name} - {DECISIONS[decision]}",
-                        f"{user.name} ({user.role.upper()}) updated payment #{payment.id}.\n\n"
-                        f"Client: {payment.client.company_name}\nAmount: {payment.currency} {payment.amount:,.2f}\n"
-                        f"Result: {DECISIONS[decision]}\n"
-                        f"Received amount: {verified_amount if verified_amount is not None else '-'}\n"
-                        f"Note: {payment.verification_note or '-'}")
+    subject = f"Verification update: {payment.client.company_name} - {DECISIONS[decision]}"
+    body = (f"{user.name} ({user.role.upper()}) updated payment #{payment.id}.\n\n"
+            f"Client: {payment.client.company_name}\nAmount: {payment.currency} {payment.amount:,.2f}\n"
+            f"Result: {DECISIONS[decision]}\n"
+            f"Received amount: {verified_amount if verified_amount is not None else '-'}\n"
+            f"Note: {payment.verification_note or '-'}")
+    # Owner gets email + WhatsApp; their manager and admins get the email copy as before.
+    notify(background, [payment.owner], subject, body, reply_to=user.email)
+    others = [e for e in stakeholders(db, payment.owner) if e != payment.owner.email]
+    background.add_task(send_email, others, subject, body, user.email)
     flash(request, f"Marked as: {DECISIONS[decision]}.")
     return RedirectResponse(f"/payments/{pid}", 303)
 
